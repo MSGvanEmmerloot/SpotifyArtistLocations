@@ -2,7 +2,7 @@
 
 ## Synopsis
 
-Using this project, it is possible to get locations from a spotify playlist using the spotify API. The program will then try to find the origin locations for these artists by searching on multiple sites.
+Using this project, it is possible to get artists from a spotify playlist using the spotify API. The program will then try to find the origin locations for these artists by searching on multiple sites.
 
 ## Usage
 
