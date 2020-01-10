@@ -12,10 +12,6 @@ namespace SpotifyArtistLocations.Data.SpotifyJSON
         public int expires_in { get; set; }
         public string scope { get; set; }
     }
-    //public class SpotifyRootObject
-    //{
-    //    public SpotifyPlaylist playlist { get; set; }
-    //}
 
     #region Compact JSON classes
     public class SpotifyPlaylistCompact

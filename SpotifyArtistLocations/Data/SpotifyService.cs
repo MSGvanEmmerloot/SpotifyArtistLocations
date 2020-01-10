@@ -13,9 +13,6 @@ namespace SpotifyArtistLocations.Data
 {
     public class SpotifyService
     {
-        //const string clientID = "32c326c076814b6c926c8ca5fbb2619c";
-        //const string clientSecret = "655b5f5a730d4d51b4e0209234abde23";
-
         const string playlistUrlBase = "https://api.spotify.com/v1/playlists/";
         const string artistUrlBase = "https://api.spotify.com/v1/artists/";
         const string audiofeaturesUrlBase = "https://api.spotify.com/v1/audio-features/";
@@ -24,21 +21,11 @@ namespace SpotifyArtistLocations.Data
         const string playlist_Test = "4I6OL8vNs3yNigdhbP7T5H";
 
         SpotifyJSON.Token token;
-        //SpotifyJSON.SpotifyPlaylist playlistFull;
-        //SpotifyJSON.Paging playlistPageFull;
-        
-        SpotifyJSON.SpotifyPlaylistCompact playlist;
-        SpotifyJSON.PagingCompact playlistPage;
-        SpotifyJSON.Artist artistInfo;
-
-        SpotifyJSON.AudioFeatures audioFeatures;
 
         public List<Music.SongInfo> songs;
         public List<string> artistList;        
         public List<Music.ArtistInfo> artists;
-
         public Dictionary<string, List<string>> artistAlbums;
-        SpotifyJSON.AlbumPagingCompact albumsPage;
 
         #region Functions that use the full JSON classes
         /*
@@ -124,7 +111,42 @@ namespace SpotifyArtistLocations.Data
             artistList.Clear();
             if (artists == null) { artists = new List<Music.ArtistInfo>(); }
             artists.Clear();
-    }
+
+            if (artistAlbums == null) { artistAlbums = new Dictionary<string, List<string>>(); }
+            artistAlbums.Clear();
+        }
+
+        public void Initialize()
+        {
+            if (token == null)
+            {
+                token = GetSpotifyToken();
+                Console.WriteLine("Received token " + token.access_token);
+            }
+            else Console.WriteLine("Already has token " + token.access_token);
+
+            if (songs == null) { songs = new List<Music.SongInfo>(); }
+            if (artists == null) { artists = new List<Music.ArtistInfo>(); }
+            if (artistList == null) { artistList = new List<string>(); }
+        }
+
+        private SpotifyJSON.Token GetSpotifyToken()
+        {
+            string auth = System.Convert.ToBase64String(
+                System.Text.Encoding.UTF8.GetBytes(
+                    Credentials.clientID + ':' + Credentials.clientSecret
+            ));
+
+            using (WebClient wc = new WebClient())
+            {
+                wc.Headers.Add(HttpRequestHeader.ContentType, "application/x-www-form-urlencoded; charset=UTF-8");
+                wc.Headers.Add(HttpRequestHeader.Authorization, "Basic " + auth);
+
+                string tokenString = wc.UploadString(new Uri("https://accounts.spotify.com/api/token"), "POST", "grant_type=client_credentials");
+                Console.WriteLine("Token: " + tokenString);
+                return JsonSerializer.Deserialize<SpotifyJSON.Token>(tokenString);
+            }
+        }
 
         #region Compact functions
         public async Task GetArtistsFromPlaylist(string playlistLink = null)
@@ -146,10 +168,11 @@ namespace SpotifyArtistLocations.Data
             }
 
             url += "?fields=tracks(items.track(album(id,name,release_date),artists,id,name),next)";
-
             Console.WriteLine("Using url " + url);
-            Console.WriteLine("Using token " + token.access_token);
-            playlist = await GetSpotifyPlaylistAsync(new Uri(url));
+
+            SpotifyJSON.SpotifyPlaylistCompact playlist = await GetSpotifyPlaylistAsync(new Uri(url));
+            if (playlist == null || playlist.tracks == null || playlist.tracks.items == null) { return; }
+
             Console.WriteLine("Playlist: " + playlist);
             for (int t = 0; t < playlist.tracks.items.Count; t++)
             {
@@ -176,7 +199,9 @@ namespace SpotifyArtistLocations.Data
             url += "&fields=items.track(album(id,name,release_date),artists,id,name),next";
 
             Console.WriteLine("Using url " + url);
-            playlistPage = await GetSpotifyPlaylistPageAsync(new Uri(url));
+            SpotifyJSON.PagingCompact playlistPage = await GetSpotifyPlaylistPageAsync(new Uri(url));
+            if (playlistPage == null || playlistPage == null || playlistPage.items == null) { return; }
+
             for (int t = 0; t < playlistPage.items.Count; t++)
             {
                 int c = songs.Count;
@@ -229,9 +254,9 @@ namespace SpotifyArtistLocations.Data
             if(a == null) { return; }
 
             string url = artistUrlBase + a.artistId;
-
             Console.WriteLine("Using url " + url);
-            artistInfo = await GetSpotifyArtistAsync(new Uri(url));
+
+            SpotifyJSON.Artist artistInfo = await GetSpotifyArtistAsync(new Uri(url));
             a.SetGenres(artistInfo.genres);
 
             Console.WriteLine("Complete artist info:" + a);
@@ -265,7 +290,7 @@ namespace SpotifyArtistLocations.Data
             url += "?include_groups=album,single&limit="+ albumsToFind;
 
             Console.WriteLine("Using url " + url);
-            albumsPage = await GetSpotifyArtistAlbumsAsync(new Uri(url));
+            SpotifyJSON.AlbumPagingCompact albumsPage = await GetSpotifyArtistAlbumsAsync(new Uri(url));
             if(albumsPage == null) { Console.WriteLine("Couldn't find album"); }
             Console.WriteLine(JsonSerializer.Serialize(albumsPage));
 
@@ -303,17 +328,16 @@ namespace SpotifyArtistLocations.Data
             if (s.songId == null) { Console.WriteLine("No id found for song"); return; }
 
             string url = audiofeaturesUrlBase + s.songId;
+            Console.WriteLine("Using url " + url);
 
             Console.WriteLine(s.GetFullString());
             Music.ArtistInfo a = artists.Find(a => a.artistName.Equals(s.artist));
             if (a != null)
             {
                 Console.WriteLine(a.ToString());
-            }
+            }            
 
-            Console.WriteLine("Using url " + url);
-
-            audioFeatures = await GetSpotifyAudioFeaturesAsync(new Uri(url));
+            SpotifyJSON.AudioFeatures audioFeatures = await GetSpotifyAudioFeaturesAsync(new Uri(url));
             Console.WriteLine("Complete artist info:" + audioFeatures);
 
             return;
@@ -329,39 +353,7 @@ namespace SpotifyArtistLocations.Data
             await GetSpotifyAudioAnalysisAsync(new Uri(url));
 
             return;
-        }
-
-        public void Initialize()
-        {
-            if (token == null)
-            {
-                token = GetSpotifyToken();
-                Console.WriteLine("Received token " + token.access_token);
-            }
-            else Console.WriteLine("Already has token " + token.access_token);
-
-            if (songs == null) { songs = new List<Music.SongInfo>(); }
-            if (artists == null) { artists = new List<Music.ArtistInfo>(); }
-            if (artistList == null) { artistList = new List<string>(); }
-        }
-
-        private SpotifyJSON.Token GetSpotifyToken()
-        {
-            string auth = System.Convert.ToBase64String(
-                System.Text.Encoding.UTF8.GetBytes(
-                    Credentials.clientID + ':' + Credentials.clientSecret
-            ));
-
-            using (WebClient wc = new WebClient())
-            {
-                wc.Headers.Add(HttpRequestHeader.ContentType, "application/x-www-form-urlencoded; charset=UTF-8");
-                wc.Headers.Add(HttpRequestHeader.Authorization, "Basic " + auth);
-
-                string tokenString = wc.UploadString(new Uri("https://accounts.spotify.com/api/token"), "POST", "grant_type=client_credentials");
-                Console.WriteLine("Token: " + tokenString);
-                return JsonSerializer.Deserialize<SpotifyJSON.Token>(tokenString);
-            }
-        }
+        }        
 
         #region REST calls that use the full JSON classes
         /*

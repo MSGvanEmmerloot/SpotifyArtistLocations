@@ -7,16 +7,6 @@
 
 <h1>Spotify artist location finder</h1>
 
-@*<button class="btn btn-primary" @onclick="Test">Test</button>*@
-@*<button class="btn btn-primary" @onclick="Test2">Test 2</button>*@
-
-@*<ul>
-        @foreach (SpotifyService.Song s in songs)
-        {
-            <li>@s</li>
-        }
-    </ul>*@
-
 <input type="text" @bind="userInputPlaylist" style="width:100%;" placeholder="Enter a playlist url here" />
 <br />
 <button @onclick="() => GetSongsFromPlaylist()">Click here to find bands in the given playlist</button>
@@ -63,7 +53,7 @@
                     <tr>
                         <td>@cur</td>
                         <td>
-                            @if (artistLocationsLastFM.ExistsAndContainsKey(cur))//artistLocationsLastFM != null && artistLocationsLastFM.ContainsKey(cur)
+                            @if (artistLocationsLastFM.ExistsAndContainsKey(cur))
                             {
                                 @artistLocationsLastFM[cur].country
                             }

@@ -54,14 +54,13 @@ namespace SpotifyArtistLocations.Pages
         [Inject]
         MusicBrainzService MusicBrainz { get; set; }
 
-        public List<Data.Music.SongInfo> songs;// = new List<Data.Music.SongInfo>();
-        public List<string> artistList;// = new List<string>();
-        public List<Data.Music.ArtistInfo> artistInfo;// = new List<Data.Music.ArtistInfo>();
-        //public Dictionary<string, string> artistLocations = new Dictionary<string, string>();
+        public List<Data.Music.SongInfo> songs;
+        public List<string> artistList;
+        public List<Data.Music.ArtistInfo> artistInfo;
 
-        public Dictionary<string, Data.Music.ArtistLocation> artistLocationsLastFM;// = new Dictionary<string, Data.Music.ArtistLocation>();
-        public Dictionary<string, Data.Music.ArtistLocation> artistLocationsMetalArchives;// = new Dictionary<string, Data.Music.ArtistLocation>();
-        public Dictionary<string, Data.Music.ArtistLocation> artistLocationsMusicBrainz;// = new Dictionary<string, Data.Music.ArtistLocation>();
+        public Dictionary<string, Data.Music.ArtistLocation> artistLocationsLastFM;
+        public Dictionary<string, Data.Music.ArtistLocation> artistLocationsMetalArchives;
+        public Dictionary<string, Data.Music.ArtistLocation> artistLocationsMusicBrainz;
 
         List<string> artistsLeft;
 
@@ -74,66 +73,45 @@ namespace SpotifyArtistLocations.Pages
 
         public Dictionary<string, string> artistLocationsAfterExtensiveSearch;
 
-        //public static void ClearIfExists<T>(this List<T> list)
-        //{
-        //    if(list != null)
-        //    {
-        //        list.Clear();
-        //    }
-        //}
-
         protected override async Task OnInitializedAsync()
         {
-            Spotify.Initialize();
-
-            //TestEscapeString("AC/DC");
-            //TestEscapeString("Guns N' Roses");
+            await Task.Run(() => Spotify.Initialize());
 
             songs = Spotify.songs;
             artistList = Spotify.artistList;
             artistInfo = Spotify.artists;
-
-            //artistLocationsMusicBrainz = MusicBrainz.artistData;
-            //artistLocationsMetalArchives = MetalArchives.artistData;
-            //artistLocationsLastFM = LastFM.artistData;
         }
-
         
         private void Reset()
         {            
-            //songs.Clear();
             songs.ClearIfExists();
 
-            //artistList.Clear();
             artistList.ClearIfExists();
-            //artistInfo.Clear();
             artistInfo.ClearIfExists();
 
-            //artistLocationsLastFM.Clear();
             artistLocationsLastFM.ClearIfExists();
-            //artistLocationsMetalArchives.Clear();
             artistLocationsMetalArchives.ClearIfExists();
-            //artistLocationsMusicBrainz.Clear();
             artistLocationsMusicBrainz.ClearIfExists();
 
             artistLocationsAfterExtensiveSearch.ClearIfExists();
         }
 
-        private void TestEscapeString(string s)
+        protected async Task GetSongsFromPlaylist()
         {
-            Console.WriteLine("Escaping \"" + s + "\" gives \"" + Uri.EscapeDataString(s) + "\"");
+            Reset();
+            Console.WriteLine("User input playlist: " + userInputPlaylist);
+
+            await Spotify.GetArtistsFromPlaylist(userInputPlaylist);
+
+            songs = Spotify.songs;
+            artistList = Spotify.artistList;
+            artistInfo = Spotify.artists;
+            artistList.Sort();
+
+            Console.WriteLine("Set songs");
         }
 
-        //protected async Task Test()
-        //{
-        //    if (artistList == null) { return; }
-        //    if (artistList.Count == 0) { return; }
-
-        //    await SequentialScrape();
-        //    this.StateHasChanged();
-        //}
-
-        public async Task SequentialScrape()
+        protected async Task SequentialScrape()
         {
             if (artistList == null) { return; }
             if (artistList.Count == 0) { return; }
@@ -142,12 +120,12 @@ namespace SpotifyArtistLocations.Pages
             artistsLeft.AddRange(artistList);
             Console.WriteLine(artistsLeft.Count + " artists left");
 
+            // First step: try to find all artists on MusicBrainz by searching for the album name in combination with the artist name
             Console.WriteLine("MusicBrainz:");
-            await Task.Run(() => MusicBrainz.GetArtistCountries(artistInfo));
+            await Task.Run(() => MusicBrainz.GetArtistCountries(artistInfo, MusicService.SearchOptions.ArtistAndAlbum));
             artistLocationsMusicBrainz = MusicBrainz.artistData;
             Console.WriteLine(artistLocationsMusicBrainz.Count + " artist origins found on MusicBrainz");
-            //this.StateHasChanged();
-
+            this.StateHasChanged();
             foreach(string k in artistLocationsMusicBrainz.Keys)
             {
                 artistsLeft.Remove(k);
@@ -155,12 +133,12 @@ namespace SpotifyArtistLocations.Pages
             Console.WriteLine(artistsLeft.Count + " artists left");
             if(artistsLeft.Count == 0) { return; }
 
+            // Second step: try to find the remaining artists on Metal Archives by searching for the artist name
             Console.WriteLine("Metal Archives:");
             await Task.Run(() => MetalArchives.GetArtistCountries(artistsLeft));
             artistLocationsMetalArchives = MetalArchives.artistData;
             Console.WriteLine(artistLocationsMetalArchives.Count + " artist origins found on Metal Archives");
-            //this.StateHasChanged();
-
+            this.StateHasChanged();
             foreach (string k in artistLocationsMetalArchives.Keys)
             {
                 artistsLeft.Remove(k);
@@ -168,12 +146,12 @@ namespace SpotifyArtistLocations.Pages
             Console.WriteLine(artistsLeft.Count + " artists left");
             if (artistsLeft.Count == 0) { return; }
 
+            // Third step: try to find the remaining artists on Metal Archives by searching for the artist name
             Console.WriteLine("LastFM:");
             await Task.Run(() => LastFM.GetArtistCountries(artistsLeft));
             artistLocationsLastFM = LastFM.artistData;
             Console.WriteLine(artistLocationsLastFM.Count + " artist origins found on LastFM");
-            //this.StateHasChanged();
-
+            this.StateHasChanged();
             foreach (string k in artistLocationsLastFM.Keys)
             {
                 artistsLeft.Remove(k);
@@ -186,89 +164,12 @@ namespace SpotifyArtistLocations.Pages
                 Console.WriteLine(artistsLeft[i]);
             }
 
+            // Last step: try to find the remaining artists on Metal Archives by searching for the artist name
             Console.WriteLine("Executing extensive search!");
             await GetRemainingArtistAlbums();
         }
 
-        //protected async Task Test2()
-        //{
-        //    if (artistList == null) { return; }
-        //    if (artistList.Count == 0) { return; }
-
-        //    await GetArtistInfo();
-        //}
-
-
-        private async Task GetSingleArtist(string artistParam = null)
-        {
-            string artist;
-
-            if (artistParam == null)
-            {
-                curArtistNum++;
-                if (curArtistNum > artistList.Count - 1) { curArtistNum = 0; }
-                artist = artistList[curArtistNum];
-            }
-            else artist = artistParam;
-
-            Console.WriteLine("Searching origin country of " + artist);
-            //string country = await Task.Run(() => LastFM.GetArtistCountry(artist));
-            string country = await Task.Run(() => MusicBrainz.GetArtistCountry(artist));
-            if (country != null)
-            {
-                Console.WriteLine(artist + " comes from " + country);
-            }
-        }
-
-        private async Task GetAllArtistsLastFM()
-        {
-            //List<string> someArtists = artistList.GetRange(0, 10);
-
-            await Task.Run(() => LastFM.GetArtistCountries(artistList));
-
-            foreach(string artist in LastFM.artistData.Keys)
-            {
-                Console.WriteLine(artist + " comes from " + LastFM.artistData[artist].GetLocation());
-            }
-        }
-
-        private async Task GetAllArtistsMetalArchives()
-        {
-            //List<string> someArtists = artistList.GetRange(0, 10);
-
-            await Task.Run(() => MetalArchives.GetArtistCountries(artistList));
-
-            foreach (string artist in MetalArchives.artistData.Keys)
-            {
-                Console.WriteLine(artist + " comes from " + MetalArchives.artistData[artist].GetLocation());
-            }
-        }
-
-        private async Task GetAllArtistsMusicBrainz()
-        {
-            //List<string> someArtists = artistList.GetRange(0, 10);
-
-            await Task.Run(() => MusicBrainz.GetArtistCountries(artistList));
-
-            foreach (string artist in MusicBrainz.artistData.Keys)
-            {
-                Console.WriteLine(artist + " comes from " + MusicBrainz.artistData[artist].GetLocation());
-            }
-        }
-
-        private async Task GetAllArtistsFromReleaseMusicBrainz()
-        {
-            //List<string> someArtists = artistList.GetRange(0, 10);
-
-            await Task.Run(() => MusicBrainz.GetArtistCountries(artistInfo));
-
-            foreach (string artist in MusicBrainz.artistData.Keys)
-            {
-                Console.WriteLine(artist + " comes from " + MusicBrainz.artistData[artist].GetLocation());
-            }
-        }
-
-        public async Task GetArtistInfo()
+        protected async Task GetArtistInfo()
         {
             if (artistList == null) { return; }
             if (artistList.Count == 0) { return; }
@@ -290,7 +191,7 @@ namespace SpotifyArtistLocations.Pages
             await Spotify.GetInfoFromArtist(a);
         }
 
-        public async Task GetRemainingArtistAlbums()
+        protected async Task GetRemainingArtistAlbums()
         {
             if (artistsLeft == null) { return; }
             if (artistsLeft.Count == 0) { return; }
@@ -301,7 +202,7 @@ namespace SpotifyArtistLocations.Pages
             }
         }
 
-        public async Task GetArtistAlbums(string artistName = null)
+        protected async Task GetArtistAlbums(string artistName = null)
         {
             string chosenArtist;
             chosenArtist = artistName;
@@ -356,7 +257,7 @@ namespace SpotifyArtistLocations.Pages
             
         }
 
-        public async Task GetAudioFeatures()
+        protected async Task GetAudioFeatures()
         {
             if (songs == null) { return; }
             if (songs.Count == 0) { return; }
@@ -379,7 +280,7 @@ namespace SpotifyArtistLocations.Pages
             await Spotify.GetAudioFeaturesFromSong(s);
         }
 
-        public async Task GetAudioAnalysis()
+        protected async Task GetAudioAnalysis()
         {
             if (songs == null) { return; }
             if (songs.Count == 0) { return; }            
@@ -397,27 +298,6 @@ namespace SpotifyArtistLocations.Pages
             Console.WriteLine("Getting audio analysis for " + s);
 
             await Spotify.GetAudioAnalysisFromSong(s);
-        }
-
-        protected async Task GetSongsFromPlaylist()
-        {
-            Reset();
-            Console.WriteLine("User input playlist: " + userInputPlaylist); //4I6OL8vNs3yNigdhbP7T5H // https://open.spotify.com/playlist/4I6OL8vNs3yNigdhbP7T5H
-
-            await Spotify.GetArtistsFromPlaylist(userInputPlaylist);
-            //await Spotify.GetArtistsFromPlaylistCompact("4I6OL8vNs3yNigdhbP7T5H");
-            songs = Spotify.songs;
-            artistList = Spotify.artistList;
-            artistInfo = Spotify.artists;
-            artistList.Sort();
-            Console.WriteLine("Set songs");
-
-            //Stopwatch s = new Stopwatch();
-            //s.Restart();
-            //await Spotify.GetArtistsFromPlaylistCompact();
-            ////await Spotify.GetArtistsFromPlaylist();
-            //s.Stop();
-            //Console.WriteLine("Receiving playlist data took " + s.ElapsedMilliseconds + " ms.");
         }
 
     }
