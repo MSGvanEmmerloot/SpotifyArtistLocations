@@ -1,0 +1,117 @@
+﻿@page "/spotify"
+
+@using SpotifyArtistLocations.Data
+@using SpotifyArtistLocations.Pages
+@using SpotifyArtistLocations.ExtensionMethods;
+@inherits SpotifyClass
+
+<h1>Spotify artist location finder</h1>
+
+@*<button class="btn btn-primary" @onclick="Test">Test</button>*@
+@*<button class="btn btn-primary" @onclick="Test2">Test 2</button>*@
+
+@*<ul>
+        @foreach (SpotifyService.Song s in songs)
+        {
+            <li>@s</li>
+        }
+    </ul>*@
+
+<input type="text" @bind="userInputPlaylist" style="width:100%;" placeholder="Enter a playlist url here" />
+<br />
+<button @onclick="() => GetSongsFromPlaylist()">Click here to find bands in the given playlist</button>
+<br />
+
+<div class="row">
+    <div class="col"><input type="text" @bind="userInputArtist" style="width:100%;" placeholder="Enter an artist name here" /></div>
+    <div class="col"><button class="btn btn-primary" @onclick="GetArtistInfo">Get artist info</button></div>
+</div>
+<div class="row">
+    <div class="col"><input type="text" @bind="userInputSong" style="width:100%;" placeholder="Enter a song title here" /></div>
+    <div class="col"><button class="btn btn-primary" @onclick="GetAudioFeatures">Get audio features for song</button></div>
+    <div class="col"><button class="btn btn-primary" @onclick="GetAudioAnalysis">Get audio analysis for song</button></div>
+</div>
+
+<!-- <button onclick=" LastFMTest(null)">Click here to test LastFM</button> -->
+<br />
+<span id="InfoText"></span>
+<div style="width:100%; height: 50vh; display:flex; margin:5px">
+    <div id="Songs" style="width:30%; overflow:auto; border:1px solid">
+        <ul>
+            @foreach (Data.Music.SongInfo s in songs)
+            {
+                <li>@s</li>
+            }
+        </ul>
+    </div>
+    <div id="Bands" style="flex-grow:1; overflow: auto; border:1px solid">
+        <table>
+            <thead>
+                <tr>
+                    <th>Artist</th>
+                    <th>All</th>
+                    <th>LastFM</th>
+                    <th>Metal Archives</th>
+                    <th>MusicBrainz</th>
+                    <th>Second parse</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (string a in artistList)
+                {
+                    var cur = a;
+                    <tr>
+                        <td>@cur</td>
+                        <td>
+                            @if (artistLocationsLastFM.ExistsAndContainsKey(cur))//artistLocationsLastFM != null && artistLocationsLastFM.ContainsKey(cur)
+                            {
+                                @artistLocationsLastFM[cur].country
+                            }
+                            else if (artistLocationsMetalArchives.ExistsAndContainsKey(cur))
+                            {
+                                @artistLocationsMetalArchives[cur].country
+                            }
+                            else if (artistLocationsMusicBrainz.ExistsAndContainsKey(cur))
+                            {
+                                @artistLocationsMusicBrainz[cur].country
+                            }
+                            else if (artistLocationsAfterExtensiveSearch.ExistsAndContainsKey(cur))
+                            {
+                                @artistLocationsAfterExtensiveSearch[cur]
+                            }
+                        </td>
+                        <td>
+                            @if (artistLocationsLastFM.ExistsAndContainsKey(cur))
+                            {
+                                @artistLocationsLastFM[cur].country
+                            }
+                        </td>
+                        <td>
+                            @if (artistLocationsMetalArchives.ExistsAndContainsKey(cur))
+                            {
+                                @artistLocationsMetalArchives[cur].country
+                            }
+                        </td>
+                        <td>
+                            @if (artistLocationsMusicBrainz.ExistsAndContainsKey(cur))
+                            {
+                                @artistLocationsMusicBrainz[cur].country
+                            }
+                        </td>
+                        <td>
+                            @if (artistLocationsAfterExtensiveSearch.ExistsAndContainsKey(cur))
+                            {
+                                @artistLocationsAfterExtensiveSearch[cur]
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+<div style="width:100%; height: 30vh; overflow: auto; margin:5px; border:1px solid">
+    Mappy here
+    <button class="btn btn-primary" @onclick="SequentialScrape">Get artist locations</button>
+    <button class="btn btn-primary" @onclick="() => GetArtistAlbums()">Get artist albums</button>
+</div>
