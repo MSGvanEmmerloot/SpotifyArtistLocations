@@ -8,13 +8,15 @@ using System.Text.Json.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Threading.Tasks;
 using System.Text;
+using SpotifyArtistLocations.ExtensionMethods;
 
 namespace SpotifyArtistLocations.Data
 {
     public class SpotifyService
     {
         const string playlistUrlBase = "https://api.spotify.com/v1/playlists/";
-        const string artistUrlBase = "https://api.spotify.com/v1/artists/";
+        const string artistUrlBase = "https://api.spotify.com/v1/artists";
+        const string albumUrlBase = "https://api.spotify.com/v1/albums/";
         const string audiofeaturesUrlBase = "https://api.spotify.com/v1/audio-features/";
         const string playlist_Allusz = "2zAl5HSdaBys9523aumKcY";
         const string playlist_FavoPerBand = "1QxfvjZypDekGWsiP4V5sX";
@@ -228,15 +230,26 @@ namespace SpotifyArtistLocations.Data
             string artist = track.artists[0].name;
             string artistID = track.artists[0].id;
             string songID = track.id;
+            string ISRC = null;
+
+            if (track.external_ids.ExistsAndContainsKey("isrc"))
+            {
+                ISRC = track.external_ids["isrc"];
+            }            
 
             await Task.Run(() =>
             {
-                songs.Add(new Music.SongInfo(song, artist, songID));
+                songs.Add(new Music.SongInfo(song, artist, songID, ISRC));
 
                 if (!artists.Exists(a => a.artistName.Equals(artist)))
                 {
                     Music.ArtistInfo newArtist = new Music.ArtistInfo(artist, artistID);
                     newArtist.SetAlbum(track.album.name, track.album.id, track.album.release_date);
+                    //if (track.album.external_ids != null && track.album.external_ids.ContainsKey("upc"))
+                    //{                        
+                    //    newArtist.SetProductCode(track.album.external_ids["upc"]);
+                    //    Console.WriteLine("Product code of " + newArtist.albumName + "=" + newArtist.UPCs[0]);
+                    //}                    
                     artists.Add(newArtist);
                 }
 
@@ -248,12 +261,40 @@ namespace SpotifyArtistLocations.Data
         }
         #endregion Compact functions
 
-        public async Task GetInfoFromArtist(string artist)
+        public async Task GetAlbumByArtistName(string artistName)
         {
-            Music.ArtistInfo a = artists.Find(a => a.artistName.Equals(artist));
+            Music.ArtistInfo a = artists.Find(a => a.artistName.Equals(artistName));
+            if (a == null) { return; }
+            Console.WriteLine("Getting album " + a.albumName + " (" + a.albumId + ") from " + artistName);
+            await GetAlbumByID(a.albumId);
+        }
+
+        public async Task<string> GetAlbumByID(string albumID)
+        {
+            string url = albumUrlBase + albumID;
+            Console.WriteLine("Using url " + url);
+
+            SpotifyJSON.Album album = await GetSpotifyAlbumAsync(new Uri(url));
+            if(album.external_ids != null && album.external_ids.ContainsKey("upc")) {
+                Music.ArtistInfo artist = artists.Find(a => a.albumId == albumID);
+                if(artist != null) {
+                    Console.WriteLine("Setting product code for album " + albumID + " to " + album.external_ids["upc"]);
+                    artist.SetProductCode(album.external_ids["upc"]);
+                }
+                return album.external_ids["upc"];
+            }
+            //Console.WriteLine(album.external_ids);
+            //Console.WriteLine(album.external_ids["upc"]);
+
+            return null;
+        }
+
+        public async Task GetInfoFromArtist(string artistName)
+        {
+            Music.ArtistInfo a = artists.Find(a => a.artistName.Equals(artistName));
             if(a == null) { return; }
 
-            string url = artistUrlBase + a.artistId;
+            string url = artistUrlBase + "/" + a.artistId;
             Console.WriteLine("Using url " + url);
 
             SpotifyJSON.Artist artistInfo = await GetSpotifyArtistAsync(new Uri(url));
@@ -286,7 +327,7 @@ namespace SpotifyArtistLocations.Data
             int albumsToFind = 10;
             int albumsToAdd = 5;
 
-            string url = artistUrlBase + a.artistId + "/albums";
+            string url = artistUrlBase + "/" + a.artistId + "/albums";
             url += "?include_groups=album,single&limit="+ albumsToFind;
 
             Console.WriteLine("Using url " + url);
@@ -398,6 +439,16 @@ namespace SpotifyArtistLocations.Data
                 wc.Headers.Add(HttpRequestHeader.Accept, "application/json");
                 wc.Headers.Add(HttpRequestHeader.Authorization, "Bearer " + token.access_token);
 
+                try
+                {
+                    wc.OpenRead(uri);
+                }
+                catch(Exception e)
+                {
+                    Console.WriteLine("Invalid playlist"); 
+                    return null;
+                }
+
                 string data = await wc.DownloadStringTaskAsync(uri);
                 Console.WriteLine("GET Playlist Received " + data.Length + " characters of data");
                 SpotifyJSON.SpotifyPlaylistCompact s = await Task.FromResult(JsonSerializer.Deserialize<SpotifyJSON.SpotifyPlaylistCompact>(data));
@@ -450,6 +501,21 @@ namespace SpotifyArtistLocations.Data
                 string data = await wc.DownloadStringTaskAsync(uri);
                 Console.WriteLine("Artist:" + data);
                 SpotifyJSON.Artist s = await Task.FromResult(JsonSerializer.Deserialize<SpotifyJSON.Artist>(data));
+                return s;
+            }
+        }
+
+        private async Task<SpotifyJSON.Album> GetSpotifyAlbumAsync(Uri uri)
+        {
+            using (WebClient wc = new WebClient())
+            {
+                wc.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                wc.Headers.Add(HttpRequestHeader.Accept, "application/json");
+                wc.Headers.Add(HttpRequestHeader.Authorization, "Bearer " + token.access_token);
+
+                string data = await wc.DownloadStringTaskAsync(uri);
+                //Console.WriteLine("Album:" + data);
+                SpotifyJSON.Album s = await Task.FromResult(JsonSerializer.Deserialize<SpotifyJSON.Album>(data));
                 return s;
             }
         }

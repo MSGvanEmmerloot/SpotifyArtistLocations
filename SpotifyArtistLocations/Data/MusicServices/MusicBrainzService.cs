@@ -42,22 +42,49 @@ namespace SpotifyArtistLocations.Data.MusicServices
             return null;
         }
 
+        public string GetArtistCountryFromBarcode(string artist, string barCode)
+        {
+            string url = "https://musicbrainz.org/search?type=release&limit=25&method=advanced&query=barcode%3A" + barCode;
+            Console.WriteLine("Accessing " + url);
+
+            HtmlWeb web = new HtmlWeb();
+            HtmlDocument doc = web.Load(url);
+            if (doc == null) { Console.WriteLine("Couldn't find page for " + artist); return null; }
+
+            AddProductCode(artist, barCode);
+            Music.ArtistLocation curArtist = GetArtistData(artist, doc);
+
+            if (curArtist != null)
+            {
+                Console.WriteLine("Found country " + curArtist.country);
+                return curArtist.country;
+            }
+
+            return null;
+        }
+
         public override Music.ArtistLocation GetArtistData(string artist, HtmlDocument doc)
         {
-            Music.ArtistLocation curArtist = new Music.ArtistLocation(artist);
+            //Music.ArtistLocation curArtist = new Music.ArtistLocation(artist);
 
-            string artistLink = FindArtistLink(artist, doc);
-            if (artistLink == "") { return null; }
-            Console.WriteLine("Found link: " + artistLink);
+            //string artistLink = FindArtistLink(artist, doc);
+            //if (artistLink == "") { return null; }
+            //Console.WriteLine("Found link: " + artistLink);
 
-            return ParseArtistPage(curArtist, artistLink);
+            //return ParseArtistPage(curArtist, artistLink);
+            return GetArtistDataFromRelease(artist, doc);
         }
 
         public override Music.ArtistLocation GetArtistDataFromRelease(string artist, HtmlDocument doc)
         {
             Music.ArtistLocation curArtist = new Music.ArtistLocation(artist);
 
-            string artistLink = FindArtistLink(artist, doc);
+            string[] artistInfo = FindArtistInfo(artist, doc);
+            if(artistInfo == null) { Console.WriteLine("Rip"); return null; }
+            Console.WriteLine(artistInfo);
+            Console.WriteLine(artistInfo.Length);
+            string artistLink = artistInfo[0];
+            curArtist.country = artistInfo[1];
             if (artistLink == "") { return null; }
             Console.WriteLine("Found link: " + artistLink);
 
@@ -144,32 +171,65 @@ namespace SpotifyArtistLocations.Data.MusicServices
         //    return null;
         //}
 
-        public string FindArtistLink(string artist, HtmlDocument doc)
+        public string[] FindArtistInfo(string artist, HtmlDocument doc)
         {
             string artistLink = "";
+            string country = "";
 
             HtmlNode searchResultTable = doc.DocumentNode.SelectSingleNode("//table[@class='tbl']");
             if (searchResultTable == null) { Console.WriteLine("Couldn't find search results for " + artist); return null; }
 
             List<HtmlNode> tableRows = searchResultTable.SelectSingleNode("//tbody").SelectNodes(".//tr").ToList();
+            List<HtmlNode> tableColumns = new List<HtmlNode>();
 
             foreach (HtmlNode row in tableRows)
             {
-                List<HtmlNode> tableColumns = row.SelectNodes(".//td").ToList();
+                tableColumns = row.SelectNodes(".//td").ToList();
+                HtmlNode artistNode = tableColumns[1].SelectSingleNode(".//a");
+                if(artistNode == null) { continue; }
+
                 if (tableColumns[1].InnerText == artist)
                 {
-                    artistLink = tableColumns[1].SelectSingleNode(".//a").Attributes["href"].Value;
+                    artistLink = artistNode.Attributes["href"].Value;
                     break;
                 }
                 else if (CheckEqual(artist, tableColumns[1].InnerText))
                 {
-                    artistLink = tableColumns[1].SelectSingleNode(".//a").Attributes["href"].Value;
+                    artistLink = artistNode.Attributes["href"].Value;
+                    break;
+                }
+                else if (CheckBarcodeMatch(artist, tableColumns[7].InnerText))
+                {
+                    artistLink = artistNode.Attributes["href"].Value;
                     break;
                 }
                 else Console.WriteLine("\"" + tableColumns[1].InnerText + "\" does not equal \"" + artist + "\"");
             }
 
-            return artistLink;
+            if(artistLink != "")
+            {
+                if (tableColumns.Count > 4 && tableColumns[4].InnerText != "")
+                {
+                    if (tableColumns[4].SelectSingleNode(".//span") != null)
+                    {
+                        HtmlNode linkNode = tableColumns[4].SelectSingleNode(".//a");
+                        if(linkNode != null) {
+                            HtmlNode abbrNode = linkNode.SelectSingleNode(".//abbr");
+                            if(abbrNode != null)
+                            {
+                                HtmlAttribute titleAttr = abbrNode.Attributes["title"];
+                                if(titleAttr != null)
+                                {
+                                    country = titleAttr.Value;
+                                }
+                            }
+                        }
+                        //country = tableColumns[4].SelectSingleNode(".//a").SelectSingleNode(".//abbr").Attributes["title"].Value;
+                    }
+                }
+            }
+
+            return new string[] { artistLink, country };
         }
 
         private bool CheckEqual(string string1, string string2)
@@ -189,6 +249,18 @@ namespace SpotifyArtistLocations.Data.MusicServices
             {
                 Console.WriteLine("equals invariant");
                 return true;
+            }
+
+            return false;
+        }
+
+        private bool CheckBarcodeMatch(string artist, string barcode)
+        {
+            if (artistUPCs == null || !artistUPCs.ContainsKey(artist)) { return false; }
+
+            if (artistUPCs[artist].Contains(barcode)) {
+                Console.WriteLine("Found barcode match for " + artist);
+                return true; 
             }
 
             return false;

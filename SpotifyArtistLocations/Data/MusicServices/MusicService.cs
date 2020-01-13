@@ -7,10 +7,12 @@ namespace SpotifyArtistLocations.Data.MusicServices
 {
     public abstract class MusicService
     {
-        public enum SearchOptions { ArtistOnly, ArtistAndAlbum };
+        public enum SearchOptions { ArtistOnly, ArtistAndAlbum, ArtistAndBarcode };
 
         public Dictionary<string, Music.ArtistLocation> artistData;
         public abstract string baseUrl { get; }
+
+        protected Dictionary<string, List<string>> artistUPCs;
 
         // This method will call GetArtistCountry for every artist string in the parameter list
         public void GetArtistCountries(List<string> artists)
@@ -71,11 +73,35 @@ namespace SpotifyArtistLocations.Data.MusicServices
                         tasks[item] = Task.Factory.StartNew(() => GetArtistCountry(artist, album));
                     }
                     break;
+                case SearchOptions.ArtistAndBarcode:
+                    if(artistUPCs == null) { artistUPCs = new Dictionary<string, List<string>>(); }
+                    for (int item = 0; item < artists.Count; item++)
+                    {
+                        string artist = artists[item].artistName;
+                        string album = artists[item].albumName;
+
+                        if (!artistUPCs.ContainsKey(artist)) { artistUPCs.Add(artist, new List<string>()); }
+                        artistUPCs[artist].Clear();
+                        artistUPCs[artist].AddRange(artists[item].UPCs);
+
+                        Console.WriteLine("Task " + item + " will handle " + artist + " album " + album);
+                        tasks[item] = Task.Factory.StartNew(() => GetArtistCountry(artist, album));
+                    }
+                    break;
             }
 
             Task.WaitAll(tasks);
 
             Console.WriteLine("Found the origins of " + artistData.Count + " artists!\n");
+        }
+
+        public void AddProductCode(string artist, string UPC)
+        {
+            if (artistUPCs == null) { artistUPCs = new Dictionary<string, List<string>>(); }
+
+            if (!artistUPCs.ContainsKey(artist)) { artistUPCs.Add(artist, new List<string>()); }
+            artistUPCs[artist].Clear();
+            artistUPCs[artist].Add(UPC);
         }
 
         // This method will get the location data for a single artist by calling GetArtistData (which has to be implemented in derived classes)

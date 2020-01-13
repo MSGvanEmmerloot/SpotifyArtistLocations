@@ -39,6 +39,7 @@ namespace SpotifyArtistLocations.Data.SpotifyJSON
     {
         public AlbumSimplifiedCompact album { get; set; }
         public List<ArtistSimplified> artists { get; set; }
+        public Dictionary<string, string> external_ids { get; set; }
         public string id { get; set; }
         public string name { get; set; }
     }
@@ -236,6 +237,7 @@ namespace SpotifyArtistLocations.Data.SpotifyJSON
         public List<ArtistSimplified> artists { get; set; }
         public List<string> available_markets { get; set; }
         //public List<string> external_urls { get; set; }
+        public Dictionary<string, string> external_ids { get; set; }
         public Dictionary<string, string> external_urls { get; set; }
         public string href { get; set; }
         public string id { get; set; }

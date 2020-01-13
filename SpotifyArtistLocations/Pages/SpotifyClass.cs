@@ -53,8 +53,10 @@ namespace SpotifyArtistLocations.Pages
         MetalArchivesService MetalArchives { get; set; }
         [Inject]
         MusicBrainzService MusicBrainz { get; set; }
+        [Inject]
+        ISRCSearchService ISRCSearch { get; set; }
 
-        public List<Data.Music.SongInfo> songs;
+        public List<Data.Music.SongInfo> songs = new List<Data.Music.SongInfo>();
         public List<string> artistList;
         public List<Data.Music.ArtistInfo> artistInfo;
 
@@ -75,13 +77,27 @@ namespace SpotifyArtistLocations.Pages
 
         protected override async Task OnInitializedAsync()
         {
-            await Task.Run(() => Spotify.Initialize());
+            Spotify.Initialize();
 
             songs = Spotify.songs;
             artistList = Spotify.artistList;
             artistInfo = Spotify.artists;
         }
-        
+
+        protected async Task Test()
+        {
+            //List<string> upcs = ISRCSearch.GetArtistUPCs("DEY421100018");
+            //if(upcs == null) { return; }
+
+            //for(int l=0; l< upcs.Count; l++)
+            //{
+            //    Console.WriteLine("Code " + l + " = " + upcs[l]);
+            //}
+            string barCode = await Spotify.GetAlbumByID("4GXGLj7ga17bYylaLbICr0");
+            MusicBrainz.AddProductCode("Fenriz Red Planet", barCode);
+            MusicBrainz.GetArtistCountryFromBarcode("Fenriz Red Planet", barCode);
+        }
+
         private void Reset()
         {            
             songs.ClearIfExists();
@@ -116,6 +132,12 @@ namespace SpotifyArtistLocations.Pages
             if (artistList == null) { return; }
             if (artistList.Count == 0) { return; }
 
+            int musicBrainzCount = 0;
+            int metalArchivesCount = 0;
+            int lastFMCount = 0;
+            int barCodeCount = 0;
+            int otherAlbumCount = 0;
+
             artistsLeft = new List<string>();
             artistsLeft.AddRange(artistList);
             Console.WriteLine(artistsLeft.Count + " artists left");
@@ -124,6 +146,7 @@ namespace SpotifyArtistLocations.Pages
             Console.WriteLine("MusicBrainz:");
             await Task.Run(() => MusicBrainz.GetArtistCountries(artistInfo, MusicService.SearchOptions.ArtistAndAlbum));
             artistLocationsMusicBrainz = MusicBrainz.artistData;
+            musicBrainzCount = artistLocationsMusicBrainz.Count;
             Console.WriteLine(artistLocationsMusicBrainz.Count + " artist origins found on MusicBrainz");
             this.StateHasChanged();
             foreach(string k in artistLocationsMusicBrainz.Keys)
@@ -137,6 +160,7 @@ namespace SpotifyArtistLocations.Pages
             Console.WriteLine("Metal Archives:");
             await Task.Run(() => MetalArchives.GetArtistCountries(artistsLeft));
             artistLocationsMetalArchives = MetalArchives.artistData;
+            metalArchivesCount = artistLocationsMetalArchives.Count;
             Console.WriteLine(artistLocationsMetalArchives.Count + " artist origins found on Metal Archives");
             this.StateHasChanged();
             foreach (string k in artistLocationsMetalArchives.Keys)
@@ -150,6 +174,7 @@ namespace SpotifyArtistLocations.Pages
             Console.WriteLine("LastFM:");
             await Task.Run(() => LastFM.GetArtistCountries(artistsLeft));
             artistLocationsLastFM = LastFM.artistData;
+            lastFMCount = artistLocationsLastFM.Count;
             Console.WriteLine(artistLocationsLastFM.Count + " artist origins found on LastFM");
             this.StateHasChanged();
             foreach (string k in artistLocationsLastFM.Keys)
@@ -164,9 +189,33 @@ namespace SpotifyArtistLocations.Pages
                 Console.WriteLine(artistsLeft[i]);
             }
 
-            // Last step: try to find the remaining artists on Metal Archives by searching for the artist name
+            // Last step: try to find the remaining artists on MusicBrainz by searching for multiple album names in combination with the artist name
             Console.WriteLine("Executing extensive search!");
+            await GetRemainingArtistsByBarcodes();
+            if (artistLocationsAfterExtensiveSearch != null)
+            {
+                barCodeCount = artistLocationsAfterExtensiveSearch.Count;
+                Console.WriteLine(barCodeCount + " artist origins found by barcode");
+                this.StateHasChanged();
+                foreach (string k in artistLocationsAfterExtensiveSearch.Keys)
+                {
+                    artistsLeft.Remove(k);
+                }
+            }
+            
             await GetRemainingArtistAlbums();
+            if (artistLocationsAfterExtensiveSearch != null)
+            {
+                otherAlbumCount = artistLocationsAfterExtensiveSearch.Count - barCodeCount;
+                //Console.WriteLine(otherAlbumCount + " artist origins found by other albums");
+            }
+            //await GetRemainingArtistsByBarcodes();
+
+            Console.WriteLine(musicBrainzCount + " artist origins found on MusicBrainz");
+            Console.WriteLine(metalArchivesCount + " artist origins found on Metal Archives");
+            Console.WriteLine(lastFMCount + " artist origins found on LastFM");
+            Console.WriteLine(barCodeCount + " artist origins found by barcode");
+            Console.WriteLine(otherAlbumCount + " artist origins found by other albums");
         }
 
         protected async Task GetArtistInfo()
@@ -200,6 +249,45 @@ namespace SpotifyArtistLocations.Pages
             {
                 await GetArtistAlbums(artistsLeft[i]);
             }
+        }
+
+        protected async Task GetRemainingArtistsByBarcodes()
+        {
+            //if (artistsLeft == null) { return; }
+            //if (artistsLeft.Count == 0) { return; }
+
+            //Dictionary<string, List<string>> artistBarcodes = new Dictionary<string, List<string>>();
+
+            //for (int i = 0; i < artistsLeft.Count; i++)
+            //{
+            //    List<string> barcodes = await Task.Run(() => ISRCSearch.GetArtistUPCs(songs.Find(s => s.artist == artistsLeft[i]).ISRC));
+            //}
+            if (artistsLeft == null) { return; }
+            if (artistsLeft.Count == 0) { return; }
+
+            for (int i = 0; i < artistsLeft.Count; i++)
+            {
+                string chosenArtist = artistsLeft[i];
+                await Spotify.GetAlbumByArtistName(chosenArtist);
+                Data.Music.ArtistInfo a = artistInfo.Find(a => a.artistName == chosenArtist);
+                if (a == null || a.UPCs == null || a.UPCs.Count == 0) { continue; }
+
+                string UPC = a.UPCs[0];
+                Console.WriteLine("UPC for " + chosenArtist + ": " + UPC);
+
+                string foundCountry = MusicBrainz.GetArtistCountryFromBarcode(chosenArtist, UPC);
+
+                if (foundCountry != null)
+                {
+                    if (artistLocationsAfterExtensiveSearch == null)
+                    {
+                        artistLocationsAfterExtensiveSearch = new Dictionary<string, string>();
+                    }
+
+                    artistLocationsAfterExtensiveSearch.Add(chosenArtist, foundCountry);
+                }
+            }
+
         }
 
         protected async Task GetArtistAlbums(string artistName = null)

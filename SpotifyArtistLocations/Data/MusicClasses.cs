@@ -28,11 +28,14 @@ namespace SpotifyArtistLocations.Data.Music
         public string title;
         public string artist;
         public string songId;
-        public SongInfo(string _title, string _artist, string _songId = null)
+        public string ISRC; // International Standard Recording Code
+
+        public SongInfo(string _title, string _artist, string _songId = null, string _ISRC = null)
         {
             title = _title;
             artist = _artist;
             songId = _songId;
+            ISRC = _ISRC;
         }
 
         public override string ToString()
@@ -54,6 +57,8 @@ namespace SpotifyArtistLocations.Data.Music
         public string albumName;
         public string albumId;
         public string albumDate;
+        //public string UPC; // Universal Product Code
+        public List<string> UPCs;
 
         public List<string> genres;
         public ArtistInfo(string _artistName, string _artistId)
@@ -72,6 +77,20 @@ namespace SpotifyArtistLocations.Data.Music
         public void SetGenres(List<string> _genres)
         {
             genres = _genres;
+        }
+
+        public void SetProductCode(string _UPC)
+        {
+            if(UPCs == null){
+                UPCs = new List<string>();
+            }
+
+            UPCs.Add(_UPC);
+        }
+
+        public void SetProductCodes(List<string> _UPCs)
+        {
+            UPCs = _UPCs;
         }
 
         public override string ToString()
