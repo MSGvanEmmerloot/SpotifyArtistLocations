@@ -14,10 +14,6 @@ namespace SpotifyArtistLocations.Data
 {
     public class SpotifyService
     {
-        const string playlistUrlBase = "https://api.spotify.com/v1/playlists/";
-        const string artistUrlBase = "https://api.spotify.com/v1/artists";
-        const string albumUrlBase = "https://api.spotify.com/v1/albums/";
-        const string audiofeaturesUrlBase = "https://api.spotify.com/v1/audio-features/";
         const string playlist_Allusz = "2zAl5HSdaBys9523aumKcY";
         const string playlist_FavoPerBand = "1QxfvjZypDekGWsiP4V5sX";
         const string playlist_Test = "4I6OL8vNs3yNigdhbP7T5H";
@@ -155,17 +151,17 @@ namespace SpotifyArtistLocations.Data
         {
             Reset();
 
-            string url;
+            string url = "https://api.spotify.com/v1/playlists/";
 
             if (playlistLink == null || playlistLink == "")
             {
                 //url = playlistUrlBase + playlist_Test;
-                url = playlistUrlBase + playlist_FavoPerBand;
+                url += playlist_FavoPerBand;
             }
             else
             {
                 string[] urlparts = playlistLink.Split("/");
-                url = playlistUrlBase + urlparts[^1];
+                url += urlparts[^1];
                 //url = playlistUrlBase + playlist;
             }
 
@@ -271,7 +267,7 @@ namespace SpotifyArtistLocations.Data
 
         public async Task<string> GetAlbumByID(string albumID)
         {
-            string url = albumUrlBase + albumID;
+            string url = "https://api.spotify.com/v1/albums/" + albumID;
             Console.WriteLine("Using url " + url);
 
             SpotifyJSON.Album album = await GetSpotifyAlbumAsync(new Uri(url));
@@ -294,7 +290,7 @@ namespace SpotifyArtistLocations.Data
             Music.ArtistInfo a = artists.Find(a => a.artistName.Equals(artistName));
             if(a == null) { return; }
 
-            string url = artistUrlBase + "/" + a.artistId;
+            string url = "https://api.spotify.com/v1/artists/" + a.artistId;
             Console.WriteLine("Using url " + url);
 
             SpotifyJSON.Artist artistInfo = await GetSpotifyArtistAsync(new Uri(url));
@@ -327,7 +323,7 @@ namespace SpotifyArtistLocations.Data
             int albumsToFind = 10;
             int albumsToAdd = 5;
 
-            string url = artistUrlBase + "/" + a.artistId + "/albums";
+            string url = "https://api.spotify.com/v1/artists/" + a.artistId + "/albums";
             url += "?include_groups=album,single&limit="+ albumsToFind;
 
             Console.WriteLine("Using url " + url);
@@ -368,7 +364,7 @@ namespace SpotifyArtistLocations.Data
             if (s == null) { Console.WriteLine("No song found"); return; }
             if (s.songId == null) { Console.WriteLine("No id found for song"); return; }
 
-            string url = audiofeaturesUrlBase + s.songId;
+            string url = "https://api.spotify.com/v1/audio-features/" + s.songId;
             Console.WriteLine("Using url " + url);
 
             Console.WriteLine(s.GetFullString());
