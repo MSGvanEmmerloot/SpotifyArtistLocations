@@ -34,7 +34,7 @@ namespace SpotifyArtistLocations
             services.AddSingleton<LastFMService>();
             services.AddSingleton<MetalArchivesService>();
             services.AddSingleton<MusicBrainzService>();
-            services.AddSingleton<ISRCSearchService>();
+            services.AddSingleton<FileService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

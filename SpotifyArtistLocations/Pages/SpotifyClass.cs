@@ -8,39 +8,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using SpotifyArtistLocations.ExtensionMethods;
 
-namespace SpotifyArtistLocations.ExtensionMethods
-{
-    public static class ExtensionMethods
-    {
-        public static void ClearIfExists<T>(this List<T> list)
-        {
-            if (list != null)
-            {
-                Console.WriteLine("Clearing list of type " + list.GetType());
-                list.Clear();
-            }
-        }
-
-        public static void ClearIfExists<T, T2>(this Dictionary<T, T2> dictionary)
-        {
-            if (dictionary != null)
-            {
-                Console.WriteLine("Clearing dictionary of type " + dictionary.GetType());
-                dictionary.Clear();
-            }
-        }
-
-        public static bool ExistsAndContainsKey<T1, T2>(this Dictionary<T1, T2> dictionary, T1 key)
-        {
-            if (dictionary != null)
-            {
-                return dictionary.ContainsKey(key);
-            }
-            return false;
-        }
-    }
-}
-
 namespace SpotifyArtistLocations.Pages
 {  
     public partial class SpotifyClass : ComponentBase
@@ -54,7 +21,7 @@ namespace SpotifyArtistLocations.Pages
         [Inject]
         MusicBrainzService MusicBrainz { get; set; }
         [Inject]
-        ISRCSearchService ISRCSearch { get; set; }
+        FileService File { get; set; }
 
         public List<Data.Music.SongInfo> songs = new List<Data.Music.SongInfo>();
         public List<string> artistList;
@@ -93,9 +60,15 @@ namespace SpotifyArtistLocations.Pages
             //{
             //    Console.WriteLine("Code " + l + " = " + upcs[l]);
             //}
-            string barCode = await Spotify.GetAlbumByID("4GXGLj7ga17bYylaLbICr0");
-            MusicBrainz.AddProductCode("Fenriz Red Planet", barCode);
-            MusicBrainz.GetArtistCountryFromBarcode("Fenriz Red Planet", barCode);
+
+            //string barCode = await Spotify.GetAlbumByID("4GXGLj7ga17bYylaLbICr0");
+            //MusicBrainz.AddProductCode("Fenriz Red Planet", barCode);
+            //MusicBrainz.GetArtistCountryFromBarcode("Fenriz Red Planet", barCode);
+
+            File.AddArtist("AC/DC", "Australia");
+            //File.Test();
+            File.WriteToFile();
+            File.ReadFromFile();
         }
 
         private void Reset()
