@@ -11,7 +11,8 @@ namespace SpotifyArtistLocations.Data
 {
     public class FileService
     {
-        const string filePath = @"C:\Users\Public\test.json";
+        const string filePath = @"C:\Users\Public\bands.json";
+        const string testPath = @"C:\Users\Public\test.json";
 
         public class ArtistContainer
         {
@@ -58,6 +59,15 @@ namespace SpotifyArtistLocations.Data
             }
         }
 
+        public void Format()
+        {
+            string band = "Sk\u00E1lm\u00F6ld";
+            if (File.Exists(filePath))
+            {
+                File.WriteAllText(testPath, band, Encoding.Unicode);
+            }
+        }
+
         public void WriteToFile()
         {
             Console.WriteLine("Writing..");
@@ -67,7 +77,7 @@ namespace SpotifyArtistLocations.Data
             // Open file, write this string, note that WriteAllText will overwrite existing text
             if (File.Exists(filePath))
             {
-                File.WriteAllText(filePath, s);
+                File.WriteAllText(filePath, s, Encoding.Unicode);
             }
         }
 
@@ -89,7 +99,7 @@ namespace SpotifyArtistLocations.Data
             // Open file, read string, pass this string
             if (File.Exists(filePath))
             {
-                s = File.ReadAllText(filePath);
+                s = File.ReadAllText(filePath, Encoding.Unicode);
             }
             //s = "{\"artists\": [{\"name\": \"AC/DC\",\"country\": \"Australia\"}]}".Replace("\\", "");
             artistData2 = ReadFromString(s);
