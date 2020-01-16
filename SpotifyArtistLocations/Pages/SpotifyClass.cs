@@ -65,8 +65,9 @@ namespace SpotifyArtistLocations.Pages
             //MusicBrainz.AddProductCode("Fenriz Red Planet", barCode);
             //MusicBrainz.GetArtistCountryFromBarcode("Fenriz Red Planet", barCode);
 
-            //FileHandler.AddArtist("AC/DC", "Australia");
-            FileHandler.Format();
+            FileHandler.AddArtist("AC/DC", "Australia");
+            FileHandler.AddArtist("Iron Maiden", "United Kingdom");
+            //FileHandler.CheckFormatting();
             //File.Test();
             //FileHandler.WriteToFile();
             //FileHandler.ReadFromFile();
@@ -197,7 +198,7 @@ namespace SpotifyArtistLocations.Pages
             Console.WriteLine(lastFMCount + " artist origins found on LastFM");
             Console.WriteLine(barCodeCount + " artist origins found by barcode");
             Console.WriteLine(otherAlbumCount + " artist origins found by other albums");
-            //FileHandler.WriteToFile();
+            FileHandler.WriteToFile();
         }
 
         protected async Task GetArtistInfo()

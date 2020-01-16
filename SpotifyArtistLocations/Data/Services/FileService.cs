@@ -42,25 +42,23 @@ namespace SpotifyArtistLocations.Data
         }
 
         public ArtistContainer artistData = new ArtistContainer { artists = new List<SingleArtist>() };
-        public ArtistContainer artistData2 = new ArtistContainer { artists = new List<SingleArtist>() };
+        public ArtistContainer loadedArtistData = new ArtistContainer { artists = new List<SingleArtist>() };
 
+        // Adds an artist to artistData if the artist is not yet
         public void AddArtist(string artistName, string artistCountry)
         {
             SingleArtist newArtist = new SingleArtist { name = artistName, country = artistCountry };
-            artistData.artists.AddUnique(newArtist);
+            //artistData.artists.AddUnique(newArtist);
+            artistData.artists.AddUniqueByObjectProperty(newArtist, "name");
 
-            if (artistData == null) { Console.WriteLine("ArtistData null"); return; }
-            if (artistData.artists == null) { Console.WriteLine("ArtistData.artists null"); return; }
-
-            Console.WriteLine("Artistdata contains " + artistData.artists.Count  + " artists: ");
-            for(int i=0; i < artistData.artists.Count; i++)
-            {
-                Console.WriteLine(artistData.artists[i]);
-            }
+            //if (artistData == null) { Console.WriteLine("ArtistData null"); return; }
+            //if (artistData.artists == null) { Console.WriteLine("ArtistData.artists null"); return; }
+            //Console.WriteLine("Succesfully added artist");
         }
 
-        public void Format()
+        public void CheckFormatting()
         {
+            // Write Skálmöld to file to check encoding
             string band = "Sk\u00E1lm\u00F6ld";
             if (File.Exists(filePath))
             {
@@ -68,11 +66,22 @@ namespace SpotifyArtistLocations.Data
             }
         }
 
+        public List<string> GetArtistsFromFile()
+        {
+            ReadFromFile();
+            return GetKnownArtistNames();
+        }
+
+        public List<string> GetKnownArtistNames()
+        {
+            if(loadedArtistData == null || loadedArtistData.artists == null) { return null; }
+            return loadedArtistData.artists.Select(s => s.name).ToList();
+        }
+
         public void WriteToFile()
         {
-            Console.WriteLine("Writing..");
-
             string s = WriteToString(artistData);
+            if(s == null) { return; }
 
             // Open file, write this string, note that WriteAllText will overwrite existing text
             if (File.Exists(filePath))
@@ -81,19 +90,22 @@ namespace SpotifyArtistLocations.Data
             }
         }
 
+        // Converts the given ArtistContainer to a (nicely formatted) string
         public string WriteToString(ArtistContainer a)
         {
-            Console.WriteLine("Artist: " + a);
-
-            string s = JsonSerializer.Serialize(a, new JsonSerializerOptions { WriteIndented = true });
-            Console.WriteLine("Converted string: " + s);
-
-            return s;
+            try
+            {
+                return JsonSerializer.Serialize(a, new JsonSerializerOptions { WriteIndented = true });
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine(e);
+                return null;
+            }
         }
 
         public void ReadFromFile()
         {
-            Console.WriteLine("Reading..");
             string s = "";
 
             // Open file, read string, pass this string
@@ -101,19 +113,25 @@ namespace SpotifyArtistLocations.Data
             {
                 s = File.ReadAllText(filePath, Encoding.Unicode);
             }
-            //s = "{\"artists\": [{\"name\": \"AC/DC\",\"country\": \"Australia\"}]}".Replace("\\", "");
-            artistData2 = ReadFromString(s);
-            Console.WriteLine(artistData2);
+            //s = "{\"artists\": [{\"name\": \"AC/DC\",\"country\": \"Australia\"}]}";
+
+            // For now, the loaded artist data is stored in a seperate list, in the future the lists may be combined to reflect one "true" list of known artists
+            loadedArtistData = ReadFromString(s);
+            Console.WriteLine(loadedArtistData);
         }
 
+        // Converts the given string to an ArtistContainer object
         public ArtistContainer ReadFromString(string s)
-        {   
-            Console.WriteLine("String: " + s);
-
-            ArtistContainer a = JsonSerializer.Deserialize<ArtistContainer>(s);
-            Console.WriteLine("Converted artist: " + a);
-
-            return a;
+        {
+            try
+            {
+                return JsonSerializer.Deserialize<ArtistContainer>(s);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                return null;
+            }
         }
 
         public void Test()
