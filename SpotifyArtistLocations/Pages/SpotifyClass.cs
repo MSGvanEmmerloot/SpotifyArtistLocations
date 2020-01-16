@@ -67,6 +67,8 @@ namespace SpotifyArtistLocations.Pages
 
             FileHandler.AddArtist("AC/DC", "Australia");
             FileHandler.AddArtist("Iron Maiden", "United Kingdom");
+            FileHandler.AddArtist("Motorhead", "United Kingdom");
+            FileHandler.PrintVals();
             //FileHandler.CheckFormatting();
             //File.Test();
             //FileHandler.WriteToFile();

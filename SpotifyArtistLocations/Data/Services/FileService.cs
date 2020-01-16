@@ -44,16 +44,36 @@ namespace SpotifyArtistLocations.Data
         public ArtistContainer artistData = new ArtistContainer { artists = new List<SingleArtist>() };
         public ArtistContainer loadedArtistData = new ArtistContainer { artists = new List<SingleArtist>() };
 
+        public Dictionary<int, SingleArtist> testDict = new Dictionary<int, SingleArtist>();
+        int k = 0;
+
         // Adds an artist to artistData if the artist is not yet
         public void AddArtist(string artistName, string artistCountry)
         {
             SingleArtist newArtist = new SingleArtist { name = artistName, country = artistCountry };
             //artistData.artists.AddUnique(newArtist);
             artistData.artists.AddUniqueByObjectProperty(newArtist, "name");
+            testDict.AddUniqueByObjectProperty(testDict.Count, newArtist, "country");
 
             //if (artistData == null) { Console.WriteLine("ArtistData null"); return; }
             //if (artistData.artists == null) { Console.WriteLine("ArtistData.artists null"); return; }
             //Console.WriteLine("Succesfully added artist");
+        }
+        
+        public void PrintVals()
+        {
+            Console.WriteLine("");
+            Console.WriteLine("artistData:");
+            foreach (SingleArtist artist in artistData.artists)
+            {
+                Console.WriteLine(artist);
+            }
+            Console.WriteLine("");
+            Console.WriteLine("testDict:");
+            foreach(KeyValuePair<int, SingleArtist> entry in testDict)
+            {
+                Console.WriteLine(entry);
+            }
         }
 
         public void CheckFormatting()

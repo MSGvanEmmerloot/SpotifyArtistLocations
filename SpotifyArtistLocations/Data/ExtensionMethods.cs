@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SpotifyArtistLocations.ExtensionMethods
 {
@@ -67,7 +68,7 @@ namespace SpotifyArtistLocations.ExtensionMethods
         }
         // AddUnique
 
-        // AddUniqueByObjectProperty adds an entry to a list if the list exists and it does not yet contain an entry with a property value matching the given property value of the given key
+        // AddUniqueByObjectProperty adds an entry to a list if the list exists and it does not yet contain an entry with a property value matching the given property value of the given object
         // The given property string should be the name of a property of the given key
         public static void AddUniqueByObjectProperty<T>(this List<T> list, T key, string property)
         {
@@ -79,28 +80,50 @@ namespace SpotifyArtistLocations.ExtensionMethods
             System.Reflection.PropertyInfo propertyInfo = type.GetProperty(property);
             if (propertyInfo == null)
             {
-                Console.WriteLine(" Object of type " + type + " does not contain property " + property);
+                Console.WriteLine("Object of type " + type + " does not contain property " + property);
                 return;
             }
             Console.WriteLine("Found " + property + " property in object of type " + type);
 
             object? keyVal = propertyInfo.GetValue(key, null);
 
-            for (int i = 0; i < list.Count; i++)
+            if (list.Find(e => propertyInfo.GetValue(e, null) == keyVal) != null)
             {
-                T entry = list[i];
-                object? entryVal = propertyInfo.GetValue(entry, null);
-
-                // Key already present in list
-                if (entryVal == keyVal)
-                {
-                    Console.WriteLine("Object with " + property + " " + entryVal + " already in list");
-                    return;
-                }
+                Console.WriteLine("Object with " + property + " " + keyVal + " already in list");
+                return;
             }
 
             list.Add(key);
             Console.WriteLine("Added " + key + " to list");
+        }
+
+        // The given property string should be the name of a property of the given value
+        public static void AddUniqueByObjectProperty<T1, T2>(this Dictionary<T1, T2> dictionary, T1 key, T2 value, string property)
+        {
+            if (dictionary == null) { return; }
+            if (dictionary.ContainsKey(key)) { Console.WriteLine("Key " + key + " already present in dictionary"); return; }
+
+            Console.WriteLine("Processing key " + key + " with value " + value);
+
+            Type type = value.GetType();
+            System.Reflection.PropertyInfo propertyInfo = type.GetProperty(property);
+            if (propertyInfo == null)
+            {
+                Console.WriteLine("Object of type " + type + " does not contain property " + property);
+                return;
+            }
+            Console.WriteLine("Found " + property + " property in object of type " + type);
+
+            object? valueVal = propertyInfo.GetValue(value, null);
+
+            if (dictionary.Values.ToList().Find(e => propertyInfo.GetValue(e, null) == valueVal) != null)
+            {
+                Console.WriteLine("Object with " + property + " " + valueVal + " already in dictionary values");
+                return;
+            }
+
+            dictionary.Add(key, value);
+            Console.WriteLine("Added Key" + key + " with value "+ value + " to dictionary");
         }
         // AddUniqueByObjectProperty
 
