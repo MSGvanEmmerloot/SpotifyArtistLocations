@@ -50,36 +50,25 @@ namespace SpotifyArtistLocations.Data
         // Adds an artist to artistData if the artist is not yet
         public void AddArtist(string artistName, string artistCountry)
         {
+            //byte[] asciiBytes = Encoding.ASCII.GetBytes(artistName);
+            //byte[] unicodeBytes = Encoding.Convert(Encoding.ASCII, Encoding.Unicode, asciiBytes);
+            //char[] unicodeChars = new char[Encoding.Unicode.GetCharCount(unicodeBytes, 0, unicodeBytes.Length)];
+            //Encoding.Unicode.GetChars(unicodeBytes, 0, unicodeBytes.Length, unicodeChars, 0);
+            //string unicodeName = new string(unicodeChars);
             SingleArtist newArtist = new SingleArtist { name = artistName, country = artistCountry };
             //artistData.artists.AddUnique(newArtist);
             artistData.artists.AddUniqueByObjectProperty(newArtist, "name");
-            testDict.AddUniqueByObjectProperty(testDict.Count, newArtist, "country");
 
             //if (artistData == null) { Console.WriteLine("ArtistData null"); return; }
             //if (artistData.artists == null) { Console.WriteLine("ArtistData.artists null"); return; }
             //Console.WriteLine("Succesfully added artist");
-        }
-        
-        public void PrintVals()
-        {
-            Console.WriteLine("");
-            Console.WriteLine("artistData:");
-            foreach (SingleArtist artist in artistData.artists)
-            {
-                Console.WriteLine(artist);
-            }
-            Console.WriteLine("");
-            Console.WriteLine("testDict:");
-            foreach(KeyValuePair<int, SingleArtist> entry in testDict)
-            {
-                Console.WriteLine(entry);
-            }
         }
 
         public void CheckFormatting()
         {
             // Write Skálmöld to file to check encoding
             string band = "Sk\u00E1lm\u00F6ld";
+            band = "\u041A\u043E\u0440\u0440\u043E\u0437\u0438\u044F \u041C\u0435\u0442\u0430\u043B\u043B\u0430";
             if (File.Exists(filePath))
             {
                 File.WriteAllText(testPath, band, Encoding.Unicode);

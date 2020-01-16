@@ -33,6 +33,8 @@ namespace SpotifyArtistLocations.Pages
 
         List<string> artistsLeft;
 
+        List<string> knownArtists;
+
         public string userInputPlaylist = "";
         public string userInputArtist = "";
         public string userInputSong = "";
@@ -49,6 +51,8 @@ namespace SpotifyArtistLocations.Pages
             songs = Spotify.songs;
             artistList = Spotify.artistList;
             artistInfo = Spotify.artists;
+
+            //knownArtists = FileHandler.GetKnownArtistNames();
         }
 
         protected async Task Test()
@@ -65,10 +69,9 @@ namespace SpotifyArtistLocations.Pages
             //MusicBrainz.AddProductCode("Fenriz Red Planet", barCode);
             //MusicBrainz.GetArtistCountryFromBarcode("Fenriz Red Planet", barCode);
 
-            FileHandler.AddArtist("AC/DC", "Australia");
-            FileHandler.AddArtist("Iron Maiden", "United Kingdom");
-            FileHandler.AddArtist("Motorhead", "United Kingdom");
-            FileHandler.PrintVals();
+            //FileHandler.AddArtist("AC/DC", "Australia");
+            //FileHandler.AddArtist("Iron Maiden", "United Kingdom");
+            //FileHandler.AddArtist("Motorhead", "United Kingdom");
             //FileHandler.CheckFormatting();
             //File.Test();
             //FileHandler.WriteToFile();
@@ -118,6 +121,17 @@ namespace SpotifyArtistLocations.Pages
             artistsLeft = new List<string>();
             artistsLeft.AddRange(artistList);
             Console.WriteLine(artistsLeft.Count + " artists left");
+
+            if(knownArtists != null)
+            {
+                Console.WriteLine(knownArtists.Count + " artist origins already known");
+
+                foreach (string a in knownArtists)
+                {
+                    artistsLeft.Remove(a);
+                }
+                Console.WriteLine(artistsLeft.Count + " artists left");
+            }
 
             // First step: try to find all artists on MusicBrainz by searching for the album name in combination with the artist name
             Console.WriteLine("MusicBrainz:");
@@ -301,10 +315,6 @@ namespace SpotifyArtistLocations.Pages
 
             await Spotify.GetAlbumsFromArtist(chosenArtist);
 
-            //for(int i=0; i< Spotify.artistAlbums.Count; i++)
-            //{
-            //    Console.WriteLine(Spotify.artistAlbums.Keys[i])
-            //}
             foreach(string artist in Spotify.artistAlbums.Keys)
             {
                 Console.WriteLine("Artist: " + artist);
